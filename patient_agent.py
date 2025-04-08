@@ -8,7 +8,7 @@ import time
 RECOVERY_AGENT_ADDRESS = "agent1qxyz...abc"  # <-- Replace with actual
 
 # Initialize PatientAgent
-patient_agent = Agent(name="PatientAgent", seed="patient", endpoint="https://abc123.ngrok.io/submit", publish_agent_details=True, mailbox=True)
+patient_agent = Agent(name="PatientAgent", seed="patient", endpoint="http://127.0.0.1:8000/submit", publish_agent_details=True, mailbox=True)
 
 # Fund the agent (useful for local or testnet)
 fund_agent_if_low(patient_agent.wallet.address())
