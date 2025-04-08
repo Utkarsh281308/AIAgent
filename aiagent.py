@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 # Define your agent
-recovery_agent = Agent(name="RecoveryCoachAgent", seed="recovery")
+recovery_agent = Agent(name="RecoveryCoachAgent", seed="recovery", endpoint = "http://127.0.0.1:8000/submit", mailbox = True)
 
 # Ensure the agent has tokens to send messages (for testing)
 fund_agent_if_low(recovery_agent.wallet.address())
@@ -25,6 +25,20 @@ class CheckInResponse(BaseModel):
     mobility: str
     medication: str
     
+
+class RequestDischargeInfo(BaseModel):
+    type: str
+    message: str
+
+class RequestTherapySchedule(BaseModel):
+    type: str
+    message: str
+
+class RequestHealthData(BaseModel):
+    type: str
+    message: str
+
+    
 class HealthData(BaseModel):
     type: str
     pain_level: int
@@ -43,13 +57,22 @@ class TherapySchedule(BaseModel):
     exercises: list
     instructor: str
 
+class CheckInPrompt(BaseModel):
+    type: str
+    date: str
+    message: str
 # 📩 Daily check-in message template
 def create_checkin_message():
-    return {
-        "type": "check_in_prompt",
-        "date": datetime.utcnow().strftime("%Y-%m-%d"),
-        "message": "🩺 Hello! How are you feeling today after your surgery?\n\nPlease reply with:\n- Pain level (1-10)\n- Mobility (e.g., walked, rested)\n- Medication taken (yes/no)\n\nWe're tracking your progress 💪"
-    }
+    return CheckInPrompt(
+        type="check_in_prompt",
+        date=datetime.utcnow().strftime("%Y-%m-%d"),
+        message=(
+            "🩺 Hello! How are you feeling today after your surgery?\n\n"
+            "Please reply with:\n- Pain level (1-10)\n"
+            "- Mobility (e.g., walked, rested)\n- Medication taken (yes/no)\n\n"
+            "We're tracking your progress 💪"
+        )
+    )
 
 # 🕒 Send daily check-in prompt
 @recovery_agent.on_interval(period=86400)  # Every 24 hours
@@ -59,22 +82,23 @@ async def check_in(ctx: Context):
     await ctx.send(PATIENT_AGENT_ADDRESS, message)
 
     # Also send a prompt to the supporting agents for periodic updates
-    discharge_message = {
-        "type": "request_discharge_info",
-        "message": "Please provide the discharge instructions for the patient."
-    }
+    discharge_message = RequestDischargeInfo(
+        type="request_discharge_info",
+        message="Please provide the discharge instructions for the patient."
+    )
     await ctx.send(DISCHARGE_AGENT_ADDRESS, discharge_message)
 
-    therapy_message = {
-        "type": "request_therapy_schedule",
-        "message": "Please provide the patient's physical therapy schedule."
-    }
+    therapy_message = RequestTherapySchedule(
+        type="request_therapy_schedule",
+        message="Please provide the patient's physical therapy schedule."
+    )
     await ctx.send(PHYSICAL_THERAPY_AGENT_ADDRESS, therapy_message)
 
-    wearable_message = {
-        "type": "request_health_data",
-        "message": "Please provide the patient's latest health data."
-    }
+
+    wearable_message = RequestHealthData(
+        type="request_health_data",
+        message="Please provide the patient's latest health data."
+    )
     await ctx.send(WEARABLE_AGENT_ADDRESS, wearable_message)
 
 # ✅ Handle incoming responses
